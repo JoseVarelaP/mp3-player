@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:padding="10dp"
+    android:background="@drawable/bg_gradient"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/imageCover"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:padding="10dp"
+        android:layout_weight="10"
+        android:src="@drawable/default_cover"/>
+
+    <TextView
+        android:id="@+id/songName"
+        android:layout_width="match_parent"
+        android:textColor="@color/colorText"
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:id="@+id/artistName"
+        android:layout_width="match_parent"
+        android:textColor="@color/colorText"
+        android:layout_height="wrap_content" />
+
+    <SeekBar android:id="@+id/sbProgress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:outlineAmbientShadowColor="@color/colorText"
+        android:outlineSpotShadowColor="@color/colorText"
+        android:layout_weight="1" />
+
+    <ImageButton android:id="@+id/Accion"
+        android:layout_width="10mm"
+        android:layout_height="2mm"
+        android:layout_weight="1"
+        android:layout_gravity="center"
+        android:src="@drawable/ic_pause_black_48dp"
+        />
+
+</LinearLayout>
