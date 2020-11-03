@@ -79,7 +79,7 @@ public class DetailsActivity extends Activity {
         String nCancion = getIntent().getStringExtra("nombreCancion");
         String nArtista = getIntent().getStringExtra("nombreArtista");
 
-        backgroundAudioProgress.setVisibility(ProgressBar.VISIBLE);
+        // backgroundAudioProgress.setVisibility(ProgressBar.VISIBLE);
 
         /*
         if (player.isPlaying ()) {
