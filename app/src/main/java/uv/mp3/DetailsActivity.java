@@ -109,7 +109,7 @@ public class DetailsActivity extends Activity {
 
         ImageButton button = findViewById( R.id.Accion );
         button.setOnClickListener( v -> {
-            if (player.isPlaying()) {
+            if (audioServiceBinder.isPlaying()) {
                 audioServiceBinder.pauseAudio();
                 button.setImageResource( R.drawable.ic_play_arrow_black_48dp );
             } else {
