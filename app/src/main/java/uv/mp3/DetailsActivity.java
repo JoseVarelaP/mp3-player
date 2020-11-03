@@ -1,13 +1,17 @@
 package uv.mp3;
 
+import android.content.ComponentName;
+import android.content.Context;
 import android.app.Activity;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.content.ServiceConnection;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -15,10 +19,24 @@ import androidx.annotation.Nullable;
 import java.io.IOException;
 
 public class DetailsActivity extends Activity {
+    private AudioServiceBinder audioServiceBinder = null;
     MediaPlayer player;
     Thread posThread;
     Uri mediaUri;
     int pos;
+
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+            // Cast and assign background service's onBind method returned iBander object.
+            audioServiceBinder = (AudioServiceBinder) iBinder;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+
+        }
+    };
 
     @Override
     protected void onCreate (@Nullable Bundle savedInstanceState) {
@@ -28,15 +46,17 @@ public class DetailsActivity extends Activity {
         SeekBar sbProgress = findViewById (R.id.sbProgress);
         sbProgress.setOnSeekBarChangeListener (new MySeekBarChangeListener ());
 
+        audioServiceBinder = new AudioServiceBinder();
+
         player = new MediaPlayer ();
         player.setOnPreparedListener (mediaPlayer -> {
             posThread = new Thread (() -> {
                 try {
-                    if( player != null && sbProgress != null ) {
-                        while (player.isPlaying()) {
+                    if( audioServiceBinder != null && sbProgress != null ) {
+                        while (audioServiceBinder.isPlaying()) {
                             Thread.sleep(1000);
-                            if( player != null && sbProgress != null )
-                                sbProgress.setProgress(player.getCurrentPosition());
+                            if( audioServiceBinder != null && sbProgress != null )
+                                sbProgress.setProgress(audioServiceBinder.getAudioProgress());
                         }
                     }
                 } catch (InterruptedException in) { in.printStackTrace (); }
@@ -52,6 +72,9 @@ public class DetailsActivity extends Activity {
         String nCancion = getIntent().getStringExtra("nombreCancion");
         String nArtista = getIntent().getStringExtra("nombreArtista");
 
+        // backgroundAudioProgress.setVisibility(ProgressBar.VISIBLE);
+
+        /*
         if (player.isPlaying ()) {
             posThread.interrupt ();
             player.stop ();
@@ -59,28 +82,26 @@ public class DetailsActivity extends Activity {
             sbProgress.setProgress (0);
             pos = -1;
         }
+        */
 
         // ImageView MuestraImagen = findViewById( R.id.imageCover );
         TextView Nombre = findViewById( R.id.songName );
         TextView Artista = findViewById( R.id.artistName );
 
-        try {
-            player.setDataSource(getBaseContext (), mediaUri);
-            player.prepare ();
-            // MuestraImagen.setImageURI( nImagen );
-            Nombre.setText( nCancion );
-            Artista.setText( nArtista );
+        audioServiceBinder.setAudioFileUri(mediaUri);
+        audioServiceBinder.setContext(getApplicationContext());
+        audioServiceBinder.startAudio();
 
-        } catch (IOException ex) { ex.printStackTrace (); }
-
+        Nombre.setText( nCancion );
+        Artista.setText( nArtista );
 
         ImageButton button = findViewById( R.id.Accion );
         button.setOnClickListener( v -> {
             if (player.isPlaying()) {
-                player.pause();
+                audioServiceBinder.pauseAudio();
                 button.setImageResource( R.drawable.ic_play_arrow_black_48dp );
             } else {
-                player.start();
+                audioServiceBinder.startAudio();
                 button.setImageResource( R.drawable.ic_pause_black_48dp );
             }
         });
@@ -95,16 +116,16 @@ public class DetailsActivity extends Activity {
         outState.putInt ("PROGRESS", player != null ?  player.getCurrentPosition () : -1);
         outState.putBoolean ("ISPLAYING", player != null && player.isPlaying ());
 
-        if (player.isPlaying ()) {
+        if ( audioServiceBinder.isPlaying() ) {
             posThread.interrupt ();
 
-            player.stop ();
-            player.seekTo (0);
-            player.release ();
-            player = null;
+            // audioServiceBinder.stopAudio();
+            // audioServiceBinder.setProgress(0);
+            // audioServiceBinder.destroyAudioPlayer();
         }
     }
 
+    /*
     @Override
     protected void onRestoreInstanceState (@NonNull Bundle savedInstanceState) {
         super.onRestoreInstanceState (savedInstanceState);
@@ -113,40 +134,25 @@ public class DetailsActivity extends Activity {
         pos = savedInstanceState.getInt ("PROGRESS");
         boolean isPlaying = savedInstanceState.getBoolean ("ISPLAYING");
 
-        if (player == null) return;
+        if (audioServiceBinder == null) return;
 
         try {
-            player.reset ();
             player.setDataSource (getBaseContext (), mediaUri);
             if (isPlaying) player.prepareAsync ();
         } catch (IOException | IllegalStateException ioex) {
             ioex.printStackTrace ();
         }
     }
-
-    @Override
-    public void onBackPressed() {
-        super.onBackPressed();
-        // Destruye el reproductor tambien para evitar choques.
-        if (player != null && player.isPlaying ()) {
-            player.stop ();
-            player.release ();
-        }
-
-        player = null;
-    }
+    */
 
     @Override
     protected void onDestroy () {
         super.onDestroy();
         // cleanup
 
-        if (player != null && player.isPlaying ()) {
-            player.stop ();
-            player.release ();
+        if (audioServiceBinder != null && audioServiceBinder.isPlaying ()) {
+            audioServiceBinder.destroyAudioPlayer();
         }
-
-        player = null;
     }
 
     @Override
@@ -167,9 +173,9 @@ public class DetailsActivity extends Activity {
         @Override
         public void onProgressChanged (SeekBar seekBar, int i, boolean b) {
             if (b) {
-                player.pause ();
-                player.seekTo (i);
-                player.start ();
+                audioServiceBinder.pauseAudio();
+                audioServiceBinder.setProgress( i );
+                audioServiceBinder.startAudio();
             }
         }
 

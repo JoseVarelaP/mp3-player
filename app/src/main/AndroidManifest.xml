@@ -24,6 +24,11 @@
 
         <activity android:name=".DetailsActivity" android:screenOrientation="sensor"/>
 
+        <service
+            android:name="uv.mp3.AudioService"
+            android:enabled="true"
+            android:exported="true"></service>
+
     </application>
 
 </manifest>
