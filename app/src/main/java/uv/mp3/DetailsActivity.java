@@ -1,25 +1,18 @@
 package uv.mp3;
 
-import android.content.ComponentName;
-import android.content.Context;
 import android.app.Activity;
-import android.content.Intent;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.os.Message;
 import android.os.Handler;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.ProgressBar;
-import android.content.ServiceConnection;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
-import java.io.IOException;
 
 public class DetailsActivity extends Activity {
     private AudioServiceBinder audioServiceBinder = null;
@@ -28,20 +21,6 @@ public class DetailsActivity extends Activity {
     MediaPlayer player;
     Thread posThread;
     Uri mediaUri;
-    int pos;
-
-    private ServiceConnection serviceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-            // Cast and assign background service's onBind method returned iBander object.
-            audioServiceBinder = (AudioServiceBinder) iBinder;
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName componentName) {
-
-        }
-    };
 
     @Override
     protected void onCreate (@Nullable Bundle savedInstanceState) {
@@ -53,56 +32,39 @@ public class DetailsActivity extends Activity {
 
         audioServiceBinder = new AudioServiceBinder();
 
-        // Esto deberia quedar aqui?
-        // (Problablemente puede estar en el servicio tambien)
-        player = new MediaPlayer ();
-        player.setOnPreparedListener (mediaPlayer -> {
-            posThread = new Thread (() -> {
-                try {
-                    if( audioServiceBinder != null && sbProgress != null ) {
-                        while (audioServiceBinder.isPlaying()) {
-                            Thread.sleep(1000);
-                            if( audioServiceBinder != null && sbProgress != null )
-                                sbProgress.setProgress(audioServiceBinder.getAudioProgress());
-                        }
-                    }
-                } catch (InterruptedException in) { in.printStackTrace (); }
-            });
-
-            sbProgress.setMax (mediaPlayer.getDuration ());
-            if (pos > -1) mediaPlayer.seekTo (pos);
-            mediaPlayer.start ();
-            posThread.start ();
-        });
-
         mediaUri = Uri.parse(getIntent().getStringExtra("audioURL"));
         String nCancion = getIntent().getStringExtra("nombreCancion");
         String nArtista = getIntent().getStringExtra("nombreArtista");
 
-        // backgroundAudioProgress.setVisibility(ProgressBar.VISIBLE);
-
-        /*
-        if (player.isPlaying ()) {
-            posThread.interrupt ();
-            player.stop ();
-            player.seekTo (0);
-            sbProgress.setProgress (0);
-            pos = -1;
-        }
-        */
-
-        // ImageView MuestraImagen = findViewById( R.id.imageCover );
         TextView Nombre = findViewById( R.id.songName );
         TextView Artista = findViewById( R.id.artistName );
 
         audioServiceBinder.setAudioFileUri(mediaUri);
         createAudioProgressbarUpdater();
 
-        backgroundAudioProgress = (ProgressBar)findViewById( R.id.backgroundaudioprogress );
+        backgroundAudioProgress = findViewById( R.id.backgroundaudioprogress );
 
-        audioServiceBinder.setAudioProgressUpdateHandler( audioProgressUpdateHandler );
         audioServiceBinder.setContext(getApplicationContext());
         audioServiceBinder.startAudio();
+
+        // Esto deberia quedar aqui?
+        // (Problablemente puede estar en el servicio tambien)
+        audioServiceBinder.GetPlayer().setOnPreparedListener (mediaPlayer -> {
+            posThread = new Thread (() -> {
+                try {
+                    if( audioServiceBinder != null ) {
+                        while ( audioServiceBinder.isPlaying() ) {
+                            Thread.sleep(1000);
+                            if( audioServiceBinder != null )
+                                sbProgress.setProgress(audioServiceBinder.getCurrentAudioPosition());
+                        }
+                    }
+                } catch (InterruptedException in) { in.printStackTrace (); }
+            });
+
+            sbProgress.setMax ( audioServiceBinder.getTotalAudioDuration() );
+            posThread.start ();
+        });
 
         Nombre.setText( nCancion );
         Artista.setText( nArtista );
@@ -137,35 +99,8 @@ public class DetailsActivity extends Activity {
         }
     }
 
-    /*
     @Override
-    protected void onRestoreInstanceState (@NonNull Bundle savedInstanceState) {
-        super.onRestoreInstanceState (savedInstanceState);
-
-        mediaUri = Uri.parse (savedInstanceState.getString ("SONG"));
-        pos = savedInstanceState.getInt ("PROGRESS");
-        boolean isPlaying = savedInstanceState.getBoolean ("ISPLAYING");
-
-        if (audioServiceBinder == null) return;
-
-        try {
-            player.setDataSource (getBaseContext (), mediaUri);
-            if (isPlaying) player.prepareAsync ();
-        } catch (IOException | IllegalStateException ioex) {
-            ioex.printStackTrace ();
-        }
-    }
-    */
-
-    @Override
-    protected void onDestroy () {
-        super.onDestroy();
-        // cleanup
-
-        if (audioServiceBinder != null && audioServiceBinder.isPlaying ()) {
-            audioServiceBinder.destroyAudioPlayer();
-        }
-    }
+    protected void onDestroy () { super.onDestroy(); }
 
     @Override
     protected void onResume() {
@@ -173,12 +108,7 @@ public class DetailsActivity extends Activity {
     }
 
     @Override
-    protected void onStart() {
-        super.onStart ();
-
-        Intent intent = getIntent ();
-
-    }
+    protected void onStart() { super.onStart (); }
 
     class MySeekBarChangeListener implements SeekBar.OnSeekBarChangeListener {
 
