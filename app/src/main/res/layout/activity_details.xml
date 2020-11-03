@@ -33,6 +33,11 @@
         android:outlineSpotShadowColor="@color/colorText"
         android:layout_weight="1" />
 
+    <ProgressBar android:id="@+id/backgroundaudioprogress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1" />
+
     <ImageButton android:id="@+id/Accion"
         android:layout_width="10mm"
         android:layout_height="2mm"

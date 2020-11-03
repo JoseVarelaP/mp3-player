@@ -8,9 +8,12 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.Message;
+import android.os.Handler;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.ProgressBar;
 import android.content.ServiceConnection;
 
 import androidx.annotation.NonNull;
@@ -20,6 +23,8 @@ import java.io.IOException;
 
 public class DetailsActivity extends Activity {
     private AudioServiceBinder audioServiceBinder = null;
+    private Handler audioProgressUpdateHandler = null;
+    private ProgressBar backgroundAudioProgress;
     MediaPlayer player;
     Thread posThread;
     Uri mediaUri;
@@ -48,6 +53,8 @@ public class DetailsActivity extends Activity {
 
         audioServiceBinder = new AudioServiceBinder();
 
+        // Esto deberia quedar aqui?
+        // (Problablemente puede estar en el servicio tambien)
         player = new MediaPlayer ();
         player.setOnPreparedListener (mediaPlayer -> {
             posThread = new Thread (() -> {
@@ -72,7 +79,7 @@ public class DetailsActivity extends Activity {
         String nCancion = getIntent().getStringExtra("nombreCancion");
         String nArtista = getIntent().getStringExtra("nombreArtista");
 
-        // backgroundAudioProgress.setVisibility(ProgressBar.VISIBLE);
+        backgroundAudioProgress.setVisibility(ProgressBar.VISIBLE);
 
         /*
         if (player.isPlaying ()) {
@@ -89,6 +96,11 @@ public class DetailsActivity extends Activity {
         TextView Artista = findViewById( R.id.artistName );
 
         audioServiceBinder.setAudioFileUri(mediaUri);
+        createAudioProgressbarUpdater();
+
+        backgroundAudioProgress = (ProgressBar)findViewById( R.id.backgroundaudioprogress );
+
+        audioServiceBinder.setAudioProgressUpdateHandler( audioProgressUpdateHandler );
         audioServiceBinder.setContext(getApplicationContext());
         audioServiceBinder.startAudio();
 
@@ -185,5 +197,24 @@ public class DetailsActivity extends Activity {
         @Override
         public void onStopTrackingTouch (SeekBar seekBar) {}
 
+    }
+
+    private void createAudioProgressbarUpdater()
+    {
+        if(audioProgressUpdateHandler==null) {
+            audioProgressUpdateHandler = new Handler() {
+                @Override
+                public void handleMessage(Message msg) {
+                    if (msg.what == audioServiceBinder.UPDATE_AUDIO_PROGRESS_BAR) {
+
+                        if( audioServiceBinder != null) {
+                            int progAct =audioServiceBinder.getAudioProgress();
+
+                            backgroundAudioProgress.setProgress(progAct*10);
+                        }
+                    }
+                }
+            };
+        }
     }
 }
